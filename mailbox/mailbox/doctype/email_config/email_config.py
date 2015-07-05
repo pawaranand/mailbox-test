@@ -10,6 +10,7 @@ from frappe.email.smtp import SMTPServer
 from frappe.email.receive import POP3Server, Email
 from poplib import error_proto
 from frappe import _
+import datetime
 
 class EmailConfig(Document):
 
@@ -82,6 +83,58 @@ class EmailConfig(Document):
 
 		return pop3
 
+	def receive(self):
+		"""Called by scheduler to receive emails from this EMail account using POP3."""
+		if self.enabled:
+			pop3 = self.get_pop3()
+			incoming_mails = pop3.get_messages()
+
+			exceptions = []
+		
+			for raw in incoming_mails:
+				try:
+					self.insert_communication(raw)
+
+				except Exception:
+					frappe.db.rollback()
+					exceptions.append(frappe.get_traceback())
+
+				else:
+					frappe.db.commit()
+
+			if exceptions:
+				raise Exception, frappe.as_json(exceptions)
+
+	def insert_communication(self, raw):
+		email = Email(raw)
+		date = datetime.datetime.strptime(email.date,'%Y-%m-%d %H:%M:%S').strftime('%d-%m-%Y %H:%M:%S')
+		communication = frappe.get_doc({
+			"doctype": "Inbox",
+			"subject": email.subject,
+			"content": email.content,
+			"sender_full_name": email.from_real_name,
+			"from": email.from_email,
+			"email_account": self.name,
+			"user":self.user,
+			"date_time":date
+		})
+
+		#self.set_thread(communication, email)
+
+		communication.insert(ignore_permissions = 1)
+		#communication.submit()
+
+		# save attachments
+		email.save_attachments_in_doc(communication)
+
+		# if self.enable_auto_reply and getattr(communication, "is_first", False):
+		# 	self.send_auto_reply(communication, email)
+
+		# notify all participants of this thread
+		# convert content to HTML - by default text parts of replies are used.
+		# communication.content = markdown2.markdown(communication.content)
+		# communication.notify(attachments=email.attachments, except_recipient = True)
+
 	def on_update(self):
-		pass
+		self.receive()
 

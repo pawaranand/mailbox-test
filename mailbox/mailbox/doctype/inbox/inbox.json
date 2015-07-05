@@ -125,7 +125,7 @@
   {
    "allow_on_submit": 0, 
    "fieldname": "date_time", 
-   "fieldtype": "Data", 
+   "fieldtype": "Datetime", 
    "hidden": 0, 
    "ignore_user_permissions": 0, 
    "in_filter": 0, 
@@ -179,7 +179,7 @@
  "is_submittable": 1, 
  "issingle": 0, 
  "istable": 0, 
- "modified": "2015-07-04 12:58:35.408182", 
+ "modified": "2015-07-04 23:30:13.336741", 
  "modified_by": "Administrator", 
  "module": "Mailbox", 
  "name": "Inbox", 
